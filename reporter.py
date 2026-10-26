@@ -61,8 +61,8 @@ class Reporter:
             print(f"Celaha CRITICAL      : {COLORS['RED']}{critical_count} Ditemukan!{COLORS['RESET']}")
     
     @staticmethod
-    def export_json(issues: List[Dict], total_files: int, output_dir: str = "output"):
-        """Export ke JSON"""
+    def export_json(issues: List[Dict], total_files: int, target_dir: str, output_dir: str = "output"):
+        """Export ke JSON dengan target_dir"""
         os.makedirs(output_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -71,6 +71,7 @@ class Reporter:
         
         report = {
             'scan_date': datetime.now().isoformat(),
+            'target_dir': os.path.abspath(target_dir),
             'total_files': total_files,
             'total_issues': len(issues),
             'critical_count': sum(1 for i in issues if i['severity'] == 'CRITICAL'),

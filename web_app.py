@@ -21,7 +21,7 @@ os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 
 # =============================================================================
-# Global Flask Error Handlers (menangkap SEMUA error di web)
+# Global Flask Error Handlers
 # =============================================================================
 @app.errorhandler(404)
 def not_found(error):
@@ -43,7 +43,6 @@ def method_not_allowed(error):
 
 @app.errorhandler(Exception)
 def handle_exception(error):
-    """Menangkap SEMUA exception yang tidak tertangani"""
     logger.exception(f"Unhandled exception: {error}")
     return jsonify({
         'error': 'Terjadi kesalahan internal',
@@ -79,6 +78,7 @@ def scan():
         
         report = {
             'scan_date': datetime.now().isoformat(),
+            'target_dir': os.path.abspath(target_dir),
             'total_files': total_files,
             'total_issues': len(issues),
             'critical_count': sum(1 for i in issues if i['severity'] == 'CRITICAL'),
@@ -124,14 +124,20 @@ def download(filename):
 def fix():
     try:
         report_file = request.json.get('report_file')
-        logger.info(f"Auto-fix request: {report_file}")
         
         if not report_file or not os.path.exists(report_file):
-            logger.warning(f"Laporan tidak ditemukan: {report_file}")
             return jsonify({'error': 'Laporan tidak ditemukan'}), 400
         
+        # Baca JSON untuk tahu folder mana yang harus di-fix
+        with open(report_file, 'r', encoding='utf-8') as f:
+            report_data = json.load(f)
+        
+        target_dir = report_data.get('target_dir', '.')
+        
+        logger.info(f"Auto-fix request untuk folder: {target_dir}")
+        
         fixer = AutoFixer()
-        stats = fixer.fix_from_report(report_file, ".")
+        stats = fixer.fix_from_report(report_file, target_dir)
         
         logger.info(f"Auto-fix selesai: {stats}")
         
@@ -145,12 +151,8 @@ def fix():
         return jsonify({'error': str(e)}), 500
 
 
-# =============================================================================
-# BONUS: Endpoint untuk melihat log via web
-# =============================================================================
 @app.route('/logs/<log_type>')
 def view_logs_web(log_type):
-    """Lihat log via web (hanya app/error)"""
     try:
         if log_type not in ['app', 'error']:
             return jsonify({'error': 'Tipe log tidak valid'}), 400

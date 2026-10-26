@@ -1,0 +1,375 @@
+{
+  "version": "2.1.0",
+  "rules": [
+    {
+      "id": "SEC-001",
+      "severity": "CRITICAL",
+      "kategori": "Hardcoded Credentials",
+      "pattern": "(?i)(password|passwd|secret|api_key|token|db_password|aws_secret|private_key)\\s*[=:]\\s*['\"][a-zA-Z0-9_\\-\\@\\#\\$]{4,}['\"]",
+      "info": "Kredensial sensitif ditulis langsung di kode.",
+      "solusi": "Pindahkan ke file .env dan gunakan getenv() atau process.env.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-002",
+      "severity": "HIGH",
+      "kategori": "SQL Injection",
+      "pattern": "(?i)(SELECT|INSERT|UPDATE|DELETE|DROP)\\s+.*?\\$[\\w\\->]+.*?(FROM|WHERE|INTO|SET|VALUES)",
+      "info": "Variabel langsung disisipkan ke query SQL tanpa sanitasi.",
+      "solusi": "Gunakan Prepared Statements (PDO/MySQLi) atau parameterized queries.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-003",
+      "severity": "HIGH",
+      "kategori": "Cross-Site Scripting (XSS)",
+      "pattern": "(?i)echo\\s+\\$[\\w\\->]+(?!.*?htmlspecialchars)(?!.*?e\\()",
+      "info": "Output variabel langsung ke HTML tanpa escaping.",
+      "solusi": "Gunakan htmlspecialchars($var, ENT_QUOTES, 'UTF-8') atau framework helper.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-004",
+      "severity": "CRITICAL",
+      "kategori": "Remote Code Execution (eval)",
+      "pattern": "(?i)\\b(eval|assert|preg_replace.*?\\/e)\\s*\\(",
+      "info": "Fungsi eval() atau equivalent terdeteksi. Sangat berbahaya jika menerima input user.",
+      "solusi": "Hindari eval(). Gunakan alternatif yang aman seperti array mapping atau switch statement.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-005",
+      "severity": "CRITICAL",
+      "kategori": "Command Injection",
+      "pattern": "(?i)\\b(system|exec|shell_exec|passthru|popen|proc_open)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+      "info": "Input user langsung dieksekusi sebagai command system.",
+      "solusi": "Jangan pernah gunakan input user di fungsi eksekusi command. Gunakan escapeshellarg() jika terpaksa.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-006",
+      "severity": "CRITICAL",
+      "kategori": "File Inclusion Vulnerability",
+      "pattern": "(?i)(include|require|include_once|require_once)\\s*\\(?\\s*\\$_(GET|POST|REQUEST)",
+      "info": "File inclusion dengan input user. Bisa menyebabkan LFI/RFI.",
+      "solusi": "Whitelist file yang boleh di-include. Jangan gunakan input user langsung.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-007",
+      "severity": "HIGH",
+      "kategori": "Path Traversal",
+      "pattern": "(?i)(file_get_contents|fopen|readfile|include)\\s*\\(.*?(\\.\\.\\/|\\.\\.\\\\)",
+      "info": "Potensi path traversal dengan directory traversal sequence.",
+      "solusi": "Validasi dan sanitize path. Gunakan realpath() untuk verifikasi.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-008",
+      "severity": "HIGH",
+      "kategori": "Insecure Deserialization",
+      "pattern": "(?i)(unserialize|json_decode)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+      "info": "Deserialisasi data dari input user. Bisa menyebabkan RCE.",
+      "solusi": "Hindari unserialize() dengan input user. Gunakan JSON dengan validasi ketat.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-009",
+      "severity": "MEDIUM",
+      "kategori": "Weak Cryptography",
+      "pattern": "(?i)\\b(md5|sha1|crc32)\\s*\\(",
+      "info": "Algoritma hash lemah digunakan untuk data sensitif.",
+      "solusi": "Gunakan password_hash() untuk password atau hash() dengan algoritma kuat (sha256, bcrypt).",
+      "auto_fixable": true,
+      "fix_description": "Ganti md5/sha1 dengan password_hash()"
+    },
+    {
+      "id": "SEC-010",
+      "severity": "MEDIUM",
+      "kategori": "Insecure Random Number",
+      "pattern": "(?i)\\b(rand|mt_rand|uniqid|lcg_value)\\s*\\(",
+      "info": "Random number generator yang tidak aman untuk kriptografi.",
+      "solusi": "Gunakan random_int() atau random_bytes() untuk kebutuhan kriptografi.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-011",
+      "severity": "LOW",
+      "kategori": "Debug Functions",
+      "pattern": "(?i)\\b(var_dump|print_r|debug_print_backtrace|dd|dump)\\s*\\(",
+      "info": "Fungsi debugging tertinggal di kode production.",
+      "solusi": "Hapus semua fungsi debug sebelum deploy ke production.",
+      "auto_fixable": true,
+      "fix_description": "Hapus baris debug function"
+    },
+    {
+      "id": "SEC-012",
+      "severity": "MEDIUM",
+      "kategori": "Insecure Cookie",
+      "pattern": "(?i)setcookie\\s*\\([^)]*\\)(?!.*?(secure|httponly|samesite))",
+      "info": "Cookie dibuat tanpa flag keamanan (secure, httponly, samesite).",
+      "solusi": "Tambahkan flag: secure, httponly, dan samesite=strict.",
+      "auto_fixable": true,
+      "fix_description": "Tambahkan flag keamanan ke setcookie()"
+    },
+    {
+      "id": "SEC-013",
+      "severity": "MEDIUM",
+      "kategori": "Missing Security Headers",
+      "pattern": "(?i)header\\s*\\(['\"]Content-Type",
+      "info": "Security headers penting mungkin tidak di-set (X-Frame-Options, CSP, dll).",
+      "solusi": "Tambahkan header: X-Frame-Options, X-Content-Type-Options, Content-Security-Policy.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-014",
+      "severity": "HIGH",
+      "kategori": "Open Redirect",
+      "pattern": "(?i)(header\\s*\\(['\"]Location|redirect)\\s*\\(?\\s*\\$_(GET|POST|REQUEST)",
+      "info": "Redirect dengan input user. Bisa digunakan untuk phishing.",
+      "solusi": "Whitelist domain yang diizinkan untuk redirect. Validasi URL secara ketat.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-015",
+      "severity": "HIGH",
+      "kategori": "XML External Entity (XXE)",
+      "pattern": "(?i)(simplexml_load_string|DOMDocument|xml_parse)\\s*\\(",
+      "info": "XML parsing tanpa menonaktifkan external entities. Rentan XXE attack.",
+      "solusi": "Nonaktifkan external entities: libxml_disable_entity_loader(true).",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-016",
+      "severity": "HIGH",
+      "kategori": "Server-Side Request Forgery (SSRF)",
+      "pattern": "(?i)(curl_exec|file_get_contents|fopen)\\s*\\(\\s*\\$_(GET|POST|REQUEST)",
+      "info": "HTTP request dengan URL dari input user. Bisa menyebabkan SSRF.",
+      "solusi": "Whitelist domain yang diizinkan. Validasi URL secara ketat.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-017",
+      "severity": "MEDIUM",
+      "kategori": "Information Disclosure",
+      "pattern": "(?i)(phpinfo|error_reporting\\s*\\(\\s*E_ALL|display_errors\\s*=\\s*['\"]?1)",
+      "info": "Informasi sensitif server bisa bocor ke user.",
+      "solusi": "Disable phpinfo() di production. Set display_errors = Off.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-018",
+      "severity": "MEDIUM",
+      "kategori": "Insecure File Upload",
+      "pattern": "(?i)(move_uploaded_file|$_FILES)\\s*(?!.*?(mime_content_type|finfo_file|getimagesize))",
+      "info": "File upload tanpa validasi MIME type yang ketat.",
+      "solusi": "Validasi MIME type, ekstensi, dan ukuran file. Simpan di luar web root.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-019",
+      "severity": "LOW",
+      "kategori": "Loose Comparison",
+      "pattern": "(?i)if\\s*\\(\\s*\\$[\\w\\->]+\\s*==\\s*['\"]{2}\\s*\\)",
+      "info": "Perbandingan longgar dengan string kosong. Bisa menyebabkan bug logika.",
+      "solusi": "Gunakan === atau empty() untuk pengecekan yang lebih aman.",
+      "auto_fixable": true,
+      "fix_description": "Ganti == dengan === (strict comparison)"
+    },
+    {
+      "id": "SEC-020",
+      "severity": "MEDIUM",
+      "kategori": "Unsafe File Operations",
+      "pattern": "(?i)(chmod|chown)\\s*\\([^)]*0?777",
+      "info": "Permission file terlalu permisif (777).",
+      "solusi": "Gunakan permission yang lebih restrictive (644 untuk file, 755 untuk directory).",
+      "auto_fixable": true,
+      "fix_description": "Ganti permission 777 dengan 755"
+    },
+    {
+      "id": "SEC-021",
+      "severity": "HIGH",
+      "kategori": "Insecure Direct Object Reference (IDOR)",
+      "pattern": "(?i)(find|where|first)\\s*\\(\\s*\\$_(GET|POST|REQUEST)\\s*\\[",
+      "info": "Query database dengan ID dari input user tanpa authorization check.",
+      "solusi": "Tambahkan authorization check. Pastikan user berhak mengakses data tersebut.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-022",
+      "severity": "MEDIUM",
+      "kategori": "CORS Misconfiguration",
+      "pattern": "(?i)Access-Control-Allow-Origin\\s*:\\s*\\*",
+      "info": "CORS allow all origins. Bisa menyebabkan security issues.",
+      "solusi": "Whitelist domain yang diizinkan. Jangan gunakan wildcard (*) di production.",
+      "auto_fixable": true,
+      "fix_description": "Ganti wildcard CORS dengan domain spesifik"
+    },
+    {
+      "id": "SEC-023",
+      "severity": "HIGH",
+      "kategori": "Weak SSL/TLS Configuration",
+      "pattern": "(?i)(curl_setopt.*?CURLOPT_SSL_VERIFYPEER.*?false|verify\\s*=\\s*False)",
+      "info": "SSL/TLS verification dinonaktifkan. Rentan MITM attack.",
+      "solusi": "Selalu aktifkan SSL verification di production.",
+      "auto_fixable": true,
+      "fix_description": "Aktifkan SSL verification (false → true)"
+    },
+    {
+      "id": "SEC-024",
+      "severity": "MEDIUM",
+      "kategori": "Directory Listing Enabled",
+      "pattern": "(?i)Options\\s+\\+Indexes",
+      "info": "Directory listing enabled di Apache. File bisa di-browse.",
+      "solusi": "Disable directory listing: Options -Indexes di .htaccess.",
+      "auto_fixable": true,
+      "fix_description": "Disable directory listing (+Indexes → -Indexes)"
+    },
+    {
+      "id": "SEC-025",
+      "severity": "LOW",
+      "kategori": "Console Logging",
+      "pattern": "(?i)console\\.(log|debug|info|warn|error)\\s*\\(",
+      "info": "Console logging tertinggal di JavaScript.",
+      "solusi": "Hapus console.log() sebelum deploy ke production.",
+      "auto_fixable": true,
+      "fix_description": "Hapus console.log() dari JavaScript"
+    },
+    {
+      "id": "SEC-026",
+      "severity": "HIGH",
+      "kategori": "Unsafe eval in JavaScript",
+      "pattern": "(?i)\\beval\\s*\\(",
+      "info": "eval() di JavaScript. Sangat berbahaya jika menerima input user.",
+      "solusi": "Hindari eval(). Gunakan JSON.parse() atau Function constructor dengan hati-hati.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-027",
+      "severity": "MEDIUM",
+      "kategori": "InnerHTML XSS",
+      "pattern": "(?i)\\.innerHTML\\s*=",
+      "info": "innerHTML digunakan. Rentan XSS jika menerima input user.",
+      "solusi": "Gunakan textContent atau sanitize input sebelum assign ke innerHTML.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-028",
+      "severity": "HIGH",
+      "kategori": "Document.write XSS",
+      "pattern": "(?i)document\\.write\\s*\\(",
+      "info": "document.write() digunakan. Rentan XSS.",
+      "solusi": "Hindari document.write(). Gunakan DOM manipulation methods yang aman.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-029",
+      "severity": "MEDIUM",
+      "kategori": "LocalStorage Sensitive Data",
+      "pattern": "(?i)localStorage\\.setItem\\s*\\(\\s*['\"](token|password|secret|key)",
+      "info": "Data sensitif disimpan di localStorage. Rentan XSS attack.",
+      "solusi": "Jangan simpan data sensitif di localStorage. Gunakan httpOnly cookies.",
+      "auto_fixable": false
+    },
+    {
+      "id": "SEC-030",
+      "severity": "HIGH",
+      "kategori": "Insecure HTTP Request",
+      "pattern": "(?i)(fetch|axios|http\\.get)\\s*\\(\\s*['\"]http://",
+      "info": "HTTP request tanpa HTTPS. Data bisa di-intercept.",
+      "solusi": "Selalu gunakan HTTPS untuk semua HTTP requests.",
+      "auto_fixable": true,
+      "fix_description": "Ganti http:// dengan https://"
+    },
+    {
+      "id": "CVE-2026-111497",
+      "severity": "CRITICAL",
+      "kategori": "RCE (HTTP2Shell / Node2Shell / Broccoli2Shell)",
+      "pattern": "(?i)\\b(eval|exec|spawn|child_process\\.exec|Function)\\s*\\(\\s*(req\\.|request\\.|params|query|body)",
+      "info": "Remote Code Execution via input user di Node.js/HTTP.",
+      "solusi": "Jangan gunakan eval/exec dengan input user. Gunakan sanitasi ketat.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2026-109618",
+      "severity": "CRITICAL",
+      "kategori": "RCE (PHP2Shell)",
+      "pattern": "(?i)\\b(eval|system|exec|shell_exec|passthru|popen)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+      "info": "PHP2Shell: Input user langsung dieksekusi sebagai command.",
+      "solusi": "Hapus segera. Jangan pernah gunakan input user di fungsi eksekusi.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2026-109619",
+      "severity": "CRITICAL",
+      "kategori": "RCE (PHP2Shell Variant)",
+      "pattern": "(?i)\\$_(GET|POST|REQUEST)\\s*\\[.*?\\]\\s*\\)\\s*;",
+      "info": "PHP2Shell variant: Superglobal langsung dieksekusi.",
+      "solusi": "Validasi dan sanitize semua input user sebelum digunakan.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2026-63030",
+      "severity": "CRITICAL",
+      "kategori": "WebShell Upload (wp2shell)",
+      "pattern": "(?i)(wp_handle_upload|move_uploaded_file)\\s*\\((?!.*?(wp_check_filetype|mime_check|finfo_file))",
+      "info": "WordPress upload tanpa validasi MIME/ekstensi yang ketat.",
+      "solusi": "Gunakan wp_check_filetype_and_ext() dan batasi ekstensi.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2026-60137",
+      "severity": "CRITICAL",
+      "kategori": "WebShell Upload (wp2shell Variant)",
+      "pattern": "(?i)upload_dir\\s*\\(\\s*\\)\\s*;(?!.*?(wp_check_filetype))",
+      "info": "WordPress upload directory tanpa validasi file type.",
+      "solusi": "Selalu validasi file type dengan wp_check_filetype() sebelum upload.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2024-38816",
+      "severity": "HIGH",
+      "kategori": "Spring Framework RCE / Path Traversal",
+      "pattern": "(?i)@RequestMapping\\s*\\(.*?\\*\\*.*?\\).*?(Resource|File)\\s+\\w+\\s*=",
+      "info": "Spring Framework wildcard (**) tanpa validasi path.",
+      "solusi": "Validasi path secara ketat. Hindari wildcard untuk file sensitif.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2024-4007",
+      "severity": "MEDIUM",
+      "kategori": "Laravel Session Bypass",
+      "pattern": "(?i)(session_id|Session::setId|cookie)\\s*\\(.*?(md5|rand|mt_rand|uniqid)",
+      "info": "Session ID dibuat dengan algoritma yang dapat diprediksi.",
+      "solusi": "Biarkan Laravel handle session ID secara internal.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2024-34342",
+      "severity": "HIGH",
+      "kategori": "Next.js SSR SSRF",
+      "pattern": "(?i)(fetch|axios|got)\\s*\\(\\s*(req\\.query|req\\.params|req\\.body|request\\.query)",
+      "info": "Next.js SSR fetch dengan URL dari input user (SSRF).",
+      "solusi": "Whitelist domain yang diizinkan sebelum fetch di server-side.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2024-42005",
+      "severity": "HIGH",
+      "kategori": "Django SQL Injection",
+      "pattern": "(?i)\\.(order_by|extra|raw)\\s*\\(\\s*(f['\"]|['\"].*?%s|['\"].*?\\.format)",
+      "info": "Django ORM dengan string formatting (SQL Injection).",
+      "solusi": "Gunakan parameter yang aman. Hindari interpolasi string di ORM.",
+      "auto_fixable": false
+    },
+    {
+      "id": "CVE-2024-26143",
+      "severity": "MEDIUM",
+      "kategori": "Ruby on Rails ReDoS",
+      "pattern": "(?i)validates_format_of\\s*:?.*?,\\s*with:\\s*/.*?(\\+|\\*|\\{).*(\\+|\\*|\\{).*/",
+      "info": "Regex dengan nested quantifiers (ReDoS vulnerability).",
+      "solusi": "Sederhanakan regex. Hindari nested quantifiers seperti (a+)+.",
+      "auto_fixable": false
+    }
+  ]
+}

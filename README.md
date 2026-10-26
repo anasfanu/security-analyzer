@@ -85,6 +85,24 @@ Setelah server aktif, buka browser Anda dan akses: `http://localhost:5000`
     Solusi  : Jangan gunakan eval() dengan input user.
 ----------------------------------------------------------------------
 
+## 📌 Panduan Perintah Utama
+
+Gunakan daftar perintah dan argumen di bawah ini untuk mengoperasikan alat analisis langsung dari terminal Anda.
+
+| Opsi / Argumen | 🛠️ Fungsi & Kegunaan | 💻 Contoh Sintaks Perintah |
+| :--- | :--- | :--- |
+| **`python main.py .`** | Memindai direktori aktif/saat ini | `python main.py .` |
+| **`python main.py <path>`** | Memindai direktori spesifik pilihan Anda | `python main.py C:\project\saya` |
+| **`--export json`** | Mengekspor laporan hasil akhir ke format JSON | `python main.py . --export json` |
+| **`--export html`** | Mengekspor laporan visual ke format HTML | `python main.py . --export html` |
+| **`--export both`** | Mengekspor laporan ke JSON dan HTML sekaligus | `python main.py . --export both` |
+| **`--fix <file>`** | Memperbaiki celah otomatis berbasis laporan JSON | `python main.py --fix output/report.json` |
+| **`--view-logs app`** | Menampilkan seluruh riwayat log aplikasi | `python main.py --view-logs app` |
+| **`--view-logs error`** | Menampilkan log khusus untuk aktivitas error | `python main.py --view-logs error` |
+| **`--log-lines N`** | Membatasi jumlah baris log yang ditampilkan | `python main.py --view-logs app --log-lines 200` |
+| **`--help`** | Membuka dokumentasi bantuan bantuan di terminal | `python main.py --help` |
+
+
 ======================================================================
                               RINGKASAN
 ======================================================================

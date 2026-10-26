@@ -5,220 +5,519 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Analyzer - Web Interface</title>
     <style>
+        :root {
+            color-scheme: dark;
+            --bg: #07111f;
+            --panel: rgba(15, 29, 49, .72);
+            --panel-strong: rgba(20, 38, 62, .88);
+            --line: rgba(177, 204, 238, .16);
+            --text: #edf5ff;
+            --muted: #9db0c9;
+            --blue: #6ea8fe;
+            --cyan: #66e3d2;
+            --danger: #ff6b81;
+            --warning: #ffbd69;
+            --shadow: 0 24px 80px rgba(0, 0, 0, .34);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 36px 20px;
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(ellipse at 12% 8%, rgba(56, 120, 255, .23), transparent 36%),
+                radial-gradient(ellipse at 88% 20%, rgba(66, 226, 208, .13), transparent 32%),
+                radial-gradient(ellipse at 55% 100%, rgba(120, 80, 255, .14), transparent 38%),
+                var(--bg);
+            background-attachment: fixed;
         }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: .18;
+            background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+            background-size: 38px 38px;
+            mask-image: linear-gradient(to bottom, black, transparent 85%);
+        }
+
+        button, input { font: inherit; }
+
         .container {
-            max-width: 1200px;
+            position: relative;
+            max-width: 1160px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: rgba(10, 22, 38, .62);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
         }
+
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
+            position: relative;
+            padding: 48px 36px 42px;
             text-align: center;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(135deg, rgba(45, 91, 157, .38), rgba(28, 48, 76, .18));
         }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .header p { font-size: 1.1em; opacity: 0.9; }
-        .content { padding: 40px; }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            top: -155px;
+            left: calc(50% - 120px);
+            border-radius: 50%;
+            background: rgba(102, 227, 210, .18);
+            filter: blur(38px);
+        }
+
+        .brand-mark {
+            display: inline-grid;
+            place-items: center;
+            width: 66px;
+            height: 66px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(255,255,255,.24);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(110,168,254,.28), rgba(102,227,210,.13));
+            box-shadow: inset 0 1px rgba(255,255,255,.2), 0 12px 34px rgba(0,0,0,.2);
+            font-size: 30px;
+        }
+
+        .eyebrow {
+            margin-bottom: 12px;
+            color: var(--cyan);
+            font-size: .74rem;
+            font-weight: 800;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+        }
+
+        .header h1 {
+            position: relative;
+            margin-bottom: 12px;
+            font-size: clamp(2rem, 5vw, 3.25rem);
+            font-weight: 800;
+            letter-spacing: -.055em;
+            line-height: 1.08;
+        }
+
+        .header h1 span {
+            color: transparent;
+            background: linear-gradient(90deg, #fff, #8fd9ff 55%, #82f2d9);
+            background-clip: text;
+            -webkit-background-clip: text;
+        }
+
+        .header p {
+            max-width: 620px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .content { padding: clamp(22px, 4vw, 42px); }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .section-icon {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(110,168,254,.1);
+            font-size: 20px;
+        }
+
+        .section-heading h2 {
+            font-size: 1.2rem;
+            letter-spacing: -.025em;
+        }
+
+        .section-heading p {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: .88rem;
+        }
+
         .scan-form {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 8px;
+            padding: clamp(22px, 3vw, 32px);
             margin-bottom: 30px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(25, 44, 69, .72), rgba(14, 27, 45, .58));
+            box-shadow: inset 0 1px rgba(255,255,255,.035);
         }
-        .form-group { margin-bottom: 20px; }
+
+        .form-group { margin-bottom: 22px; }
+
         .form-group label {
             display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #2c3e50;
+            margin-bottom: 10px;
+            color: #dbe8f8;
+            font-size: .9rem;
+            font-weight: 700;
         }
+
         .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-        .form-group input:focus {
+            min-height: 54px;
+            padding: 14px 16px;
+            color: var(--text);
+            border: 1px solid rgba(174, 200, 233, .2);
+            border-radius: 13px;
             outline: none;
-            border-color: #667eea;
+            background: rgba(4, 13, 25, .55);
+            transition: border-color .2s, box-shadow .2s, background .2s;
         }
+
+        .form-group input::placeholder { color: #70839d; }
+
+        .form-group input:focus {
+            border-color: rgba(110,168,254,.85);
+            background: rgba(4, 13, 25, .8);
+            box-shadow: 0 0 0 4px rgba(110,168,254,.12);
+        }
+
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 14px 40px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1em;
-            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            min-height: 48px;
+            padding: 13px 20px;
+            color: #061322;
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: 13px;
+            background: linear-gradient(110deg, #83b7ff, #6ce4d3);
+            box-shadow: 0 8px 24px rgba(70, 155, 214, .18), inset 0 1px rgba(255,255,255,.55);
+            font-weight: 800;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
         }
+
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            filter: brightness(1.06);
+            box-shadow: 0 13px 30px rgba(70, 155, 214, .25);
         }
+
+        .btn:active { transform: translateY(0); }
+
+        .btn:focus-visible {
+            outline: 3px solid rgba(110,168,254,.65);
+            outline-offset: 3px;
+        }
+
         .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+            opacity: .58;
+            cursor: wait;
+            transform: none;
         }
-        .results {
-            display: none;
-            margin-top: 30px;
+
+        .btn-secondary {
+            color: #e6effb;
+            border-color: var(--line);
+            background: rgba(151, 174, 204, .12);
+            box-shadow: inset 0 1px rgba(255,255,255,.06);
         }
+
+        .results { display: none; margin-top: 34px; }
+
+        .results-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .results-title h2 { font-size: 1.35rem; letter-spacing: -.03em; }
+
+        .live-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 11px;
+            color: #a5f3df;
+            border: 1px solid rgba(102,227,210,.2);
+            border-radius: 999px;
+            background: rgba(102,227,210,.08);
+            font-size: .75rem;
+            font-weight: 800;
+        }
+
+        .live-pill::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan);
+        }
+
         .summary {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
+
         .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 142px;
+            padding: 24px;
+            border: 1px solid var(--line);
+            border-radius: 19px;
+            background: linear-gradient(145deg, rgba(26, 46, 72, .76), rgba(13, 27, 45, .7));
+            box-shadow: inset 0 1px rgba(255,255,255,.04);
+            transition: transform .2s, border-color .2s;
         }
+
+        .stat-card:hover { transform: translateY(-3px); border-color: rgba(174,200,233,.32); }
+
         .stat-card h3 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            margin: 8px 0 9px;
+            font-size: clamp(2rem, 4vw, 2.7rem);
+            font-weight: 800;
+            letter-spacing: -.06em;
         }
-        .stat-card.critical h3 { color: #c0392b; }
-        .stat-card.issues h3 { color: #e67e22; }
-        .stat-card.files h3 { color: #3498db; }
+
+        .stat-card p { color: var(--muted); font-size: .87rem; }
+        .stat-card.files h3 { color: #83b7ff; }
+        .stat-card.issues h3 { color: var(--warning); }
+        .stat-card.critical h3 { color: var(--danger); }
+
+        .stat-label {
+            color: #8fa5c1;
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 32px; }
+
+        .subheading {
+            margin: 0 0 16px;
+            font-size: 1.05rem;
+            letter-spacing: -.02em;
+        }
+
         .issue-list {
-            max-height: 600px;
+            display: grid;
+            gap: 14px;
+            max-height: 650px;
             overflow-y: auto;
+            padding: 2px 5px 2px 2px;
         }
+
         .issue {
-            background: white;
-            border-left: 4px solid #e74c3c;
             padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--danger);
+            border-radius: 16px;
+            background: rgba(18, 34, 55, .7);
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
         }
-        .issue.CRITICAL { border-left-color: #c0392b; }
-        .issue.HIGH { border-left-color: #e67e22; }
-        .issue.MEDIUM { border-left-color: #f39c12; }
-        .issue.LOW { border-left-color: #3498db; }
+
+        .issue.CRITICAL { border-left-color: #ff526f; }
+        .issue.HIGH { border-left-color: #ff9c61; }
+        .issue.MEDIUM { border-left-color: #f5ca65; }
+        .issue.LOW { border-left-color: #70b7ff; }
+
         .issue-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-        }
-        .severity-badge {
-            padding: 4px 12px;
-            border-radius: 4px;
-            color: white;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
-        .severity-badge.CRITICAL { background: #c0392b; }
-        .severity-badge.HIGH { background: #e67e22; }
-        .severity-badge.MEDIUM { background: #f39c12; }
-        .severity-badge.LOW { background: #3498db; }
-        .file-path {
-            font-family: monospace;
-            color: #7f8c8d;
-            font-size: 0.9em;
-        }
-        .code-block {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 12px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            margin: 10px 0;
-            overflow-x: auto;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            display: none;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .actions {
-            margin-top: 20px;
-            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
             gap: 10px;
+            margin-bottom: 14px;
         }
-        .btn-secondary {
-            background: #95a5a6;
+
+        .severity-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: .72rem;
+            font-weight: 900;
+            letter-spacing: .06em;
+        }
+
+        .severity-badge.CRITICAL { color: #ff9eaf; border-color: rgba(255,82,111,.25); background: rgba(255,82,111,.12); }
+        .severity-badge.HIGH { color: #ffc092; border-color: rgba(255,156,97,.25); background: rgba(255,156,97,.12); }
+        .severity-badge.MEDIUM { color: #f5d98c; border-color: rgba(245,202,101,.25); background: rgba(245,202,101,.1); }
+        .severity-badge.LOW { color: #9bcaff; border-color: rgba(112,183,255,.25); background: rgba(112,183,255,.1); }
+
+        .file-path {
+            color: #8fa5c1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: .8rem;
+            overflow-wrap: anywhere;
+        }
+
+        .issue h4 { margin-bottom: 10px; font-size: 1rem; line-height: 1.5; }
+
+        .code-block {
+            margin: 12px 0;
+            padding: 14px;
+            overflow-x: auto;
+            color: #b9d7fa;
+            border: 1px solid rgba(139,180,231,.13);
+            border-radius: 11px;
+            background: rgba(2, 9, 18, .65);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: .83rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .issue p { margin-top: 9px; color: #b6c6da; font-size: .9rem; line-height: 1.65; }
+        .issue p strong { color: #e4eefb; }
+
+        .loading {
+            display: none;
+            padding: 42px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            border: 3px solid rgba(157,176,201,.16);
+            border-top-color: var(--cyan);
+            border-right-color: var(--blue);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        .loading p { line-height: 1.6; }
+        .loading strong { display: block; margin-bottom: 5px; color: var(--text); font-size: 1.05rem; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .footer {
+            padding: 18px 24px;
+            color: #7187a2;
+            border-top: 1px solid var(--line);
+            text-align: center;
+            font-size: .78rem;
+        }
+
+        .issue-list::-webkit-scrollbar { width: 8px; }
+        .issue-list::-webkit-scrollbar-track { background: transparent; }
+        .issue-list::-webkit-scrollbar-thumb { border-radius: 20px; background: rgba(157,176,201,.25); }
+
+        @media (max-width: 700px) {
+            body { padding: 14px 10px; }
+            .container { border-radius: 21px; }
+            .header { padding: 36px 20px 32px; }
+            .content { padding: 22px 16px; }
+            .summary { grid-template-columns: 1fr; gap: 12px; }
+            .stat-card { min-height: auto; padding: 19px; }
+            .stat-card h3 { margin: 6px 0; }
+            .actions { flex-direction: column; }
+            .actions .btn, #scanBtn { width: 100%; }
+            .results-title { align-items: flex-start; flex-direction: column; }
+            .issue { padding: 16px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔒 Security Analyzer</h1>
-            <p>Deep Project Security & Bug Detection</p>
+            <div class="brand-mark" aria-hidden="true">⌁</div>
+            <div class="eyebrow">Project protection suite</div>
+            <h1><span>Security Analyzer Smasher</span></h1>
+            <p>Temukan potensi celah keamanan dan bug proyek dalam satu dashboard yang ringkas, modern, dan mudah dipantau.</p>
         </div>
         
         <div class="content">
             <div class="scan-form">
-                <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 Scan Project</h2>
+                <div class="section-heading">
+                    <div class="section-icon" aria-hidden="true">⌕</div>
+                    <div>
+                        <h2>Scan Project</h2>
+                        <p>Masukkan direktori yang ingin dianalisis.</p>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="targetPath">Path Direktori Project:</label>
-                    <input type="text" id="targetPath" placeholder="/path/to/your/project" value=".">
+                    <input type="text" id="targetPath" placeholder="/path/to/your/project" value="">
                 </div>
-                <button class="btn" id="scanBtn" onclick="startScan()">🚀 Mulai Scan</button>
+                <button class="btn" id="scanBtn" onclick="startScan()"><span aria-hidden="true">↗</span> Mulai Pemindaian</button>
             </div>
             
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Memindai project... Mohon tunggu</p>
+                <p><strong>Sedang menganalisis proyek</strong>Memeriksa file dan mencari indikasi masalah keamanan. Mohon tunggu…</p>
             </div>
             
             <div class="results" id="results">
-                <h2 style="margin-bottom: 20px; color: #2c3e50;">📊 Hasil Pemindaian</h2>
+                <div class="results-title">
+                    <h2>Hasil Pemindaian</h2>
+                    <span class="live-pill">Laporan terbaru</span>
+                </div>
                 
                 <div class="summary">
                     <div class="stat-card files">
                         <h3 id="totalFiles">0</h3>
+                        <div class="stat-label">Files checked</div>
                         <p>File Diperiksa</p>
                     </div>
                     <div class="stat-card issues">
                         <h3 id="totalIssues">0</h3>
+                        <div class="stat-label">Findings</div>
                         <p>Total Masalah</p>
                     </div>
                     <div class="stat-card critical">
                         <h3 id="criticalCount">0</h3>
-                        <p>Celaha CRITICAL</p>
+                        <div class="stat-label">Critical risk</div>
+                        <p>Celah Kritis</p>
                     </div>
                 </div>
                 
                 <div class="actions">
-                    <button class="btn" onclick="downloadReport()">📥 Download Laporan JSON</button>
-                    <button class="btn btn-secondary" onclick="autoFix()">🔧 Auto-Fix</button>
+                    <button class="btn" onclick="downloadReport()"><span aria-hidden="true">↓</span> Download Laporan JSON</button>
+                    <button class="btn btn-secondary" onclick="autoFix()"><span aria-hidden="true">⚙</span> Auto-Fix</button>
                 </div>
                 
-                <h3 style="margin-top: 30px; margin-bottom: 15px; color: #2c3e50;">🚨 Detail Masalah</h3>
+                <h3 class="subheading">Detail Masalah</h3>
                 <div class="issue-list" id="issueList"></div>
             </div>
         </div>
@@ -262,6 +561,16 @@
             }
         }
         
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
         function displayResults(data) {
             const results = document.getElementById('results');
             results.style.display = 'block';
@@ -275,16 +584,18 @@
             
             data.issues.forEach(issue => {
                 const issueDiv = document.createElement('div');
-                issueDiv.className = `issue ${issue.severity}`;
+                const severity = String(issue.severity ?? 'LOW').toUpperCase();
+                const safeSeverity = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(severity) ? severity : 'LOW';
+                issueDiv.className = `issue ${safeSeverity}`;
                 issueDiv.innerHTML = `
                     <div class="issue-header">
-                        <span class="severity-badge ${issue.severity}">${issue.severity}</span>
-                        <span class="file-path">${issue.file} : Baris ${issue.line}</span>
+                        <span class="severity-badge ${safeSeverity}">${escapeHTML(safeSeverity)}</span>
+                        <span class="file-path">${escapeHTML(issue.file)} : Baris ${escapeHTML(issue.line)}</span>
                     </div>
-                    <h4>[${issue.id}] ${issue.kategori}</h4>
-                    <div class="code-block">${issue.content}</div>
-                    <p><strong>ℹ️ Info:</strong> ${issue.info}</p>
-                    <p><strong>✅ Solusi:</strong> ${issue.solusi}</p>
+                    <h4>[${escapeHTML(issue.id)}] ${escapeHTML(issue.kategori)}</h4>
+                    <div class="code-block">${escapeHTML(issue.content)}</div>
+                    <p><strong>Info:</strong> ${escapeHTML(issue.info)}</p>
+                    <p><strong>Solusi:</strong> ${escapeHTML(issue.solusi)}</p>
                 `;
                 issueList.appendChild(issueDiv);
             });
