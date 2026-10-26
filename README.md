@@ -71,45 +71,66 @@ Setelah server aktif, buka browser Anda dan akses: `http://localhost:5000`
 
 ---
 
-## 📊 Contoh Output (Console)
+## 🛠️ Panduan Perintah (CLI Reference)
 
-```text
-======================================================================
-                         HASIL PEMINDAIAN KEAMANAN
-======================================================================
+Security Analyzer menyediakan berbagai opsi perintah untuk memindai proyek, mengekspor laporan, memperbaiki masalah, dan memeriksa log aplikasi melalui terminal.
 
-[✗] FILE: app/controllers/UserController.php
-  [CRITICAL] Baris   45: eval(\$_GET['code']);
-    [CVE-2026-109618] Kategori: RCE (PHP2Shell)
-    Info    : Input user dieksekusi sebagai command.
-    Solusi  : Jangan gunakan eval() dengan input user.
-----------------------------------------------------------------------
-
-## 📌 Panduan Perintah Utama
-
-Gunakan daftar perintah dan argumen di bawah ini untuk mengoperasikan alat analisis langsung dari terminal Anda.
+### 📋 Daftar Opsi & Argumen
 
 | Opsi / Argumen | 🛠️ Fungsi & Kegunaan | 💻 Contoh Sintaks Perintah |
-| :--- | :--- | :--- |
-| **`python main.py .`** | Memindai direktori aktif/saat ini | `python main.py .` |
-| **`python main.py <path>`** | Memindai direktori spesifik pilihan Anda | `python main.py C:\project\saya` |
-| **`--export json`** | Mengekspor laporan hasil akhir ke format JSON | `python main.py . --export json` |
-| **`--export html`** | Mengekspor laporan visual ke format HTML | `python main.py . --export html` |
-| **`--export both`** | Mengekspor laporan ke JSON dan HTML sekaligus | `python main.py . --export both` |
-| **`--fix <file>`** | Memperbaiki celah otomatis berbasis laporan JSON | `python main.py --fix output/report.json` |
-| **`--view-logs app`** | Menampilkan seluruh riwayat log aplikasi | `python main.py --view-logs app` |
-| **`--view-logs error`** | Menampilkan log khusus untuk aktivitas error | `python main.py --view-logs error` |
-| **`--log-lines N`** | Membatasi jumlah baris log yang ditampilkan | `python main.py --view-logs app --log-lines 200` |
-| **`--help`** | Membuka dokumentasi bantuan bantuan di terminal | `python main.py --help` |
+|:---|:---|:---|
+| `python main.py .` | Memindai direktori aktif saat ini. | `python main.py .` |
+| `python main.py <path>` | Memindai direktori spesifik yang dipilih. | `python main.py C:\project\saya` |
+| `--export json` | Mengekspor laporan hasil pemindaian ke format JSON. | `python main.py . --export json` |
+| `--export html` | Mengekspor laporan visual ke format HTML. | `python main.py . --export html` |
+| `--export both` | Mengekspor laporan ke format JSON dan HTML sekaligus. | `python main.py . --export both` |
+| `--fix <file>` | Memperbaiki celah secara otomatis berdasarkan laporan JSON. | `python main.py --fix output/report.json` |
+| `--view-logs app` | Menampilkan seluruh riwayat log aplikasi. | `python main.py --view-logs app` |
+| `--view-logs error` | Menampilkan log khusus aktivitas error. | `python main.py --view-logs error` |
+| `--log-lines N` | Membatasi jumlah baris log yang ditampilkan. | `python main.py --view-logs app --log-lines 200` |
+| `--help` | Menampilkan dokumentasi bantuan di terminal. | `python main.py --help` |
 
+### 🚀 Contoh Penggunaan
 
-======================================================================
-                              RINGKASAN
-======================================================================
-Total File Diperiksa : 127
-Total Masalah        : 23
-Celah CRITICAL       : 3 Ditemukan!
+**1. Memindai proyek dan mengekspor laporan**
+
+```bash
+# Memindai direktori saat ini dan menyimpan laporan JSON
+python main.py . --export json
+
+# Memindai direktori tertentu dan mengekspor laporan HTML
+python main.py C:\project\saya --export html
+
+# Mengekspor laporan dalam kedua format
+python main.py . --export both
 ```
+
+**2. Memperbaiki masalah berdasarkan laporan**
+
+```bash
+python main.py --fix output/report.json
+```
+
+**3. Memeriksa log aplikasi**
+
+```bash
+# Menampilkan log aplikasi
+python main.py --view-logs app
+
+# Menampilkan log error
+python main.py --view-logs error
+
+# Menampilkan maksimal 200 baris log aplikasi
+python main.py --view-logs app --log-lines 200
+```
+
+**4. Melihat dokumentasi bantuan**
+
+```bash
+python main.py --help
+```
+
+> **💡 Tips:** Jalankan `python main.py --help` untuk melihat opsi bantuan yang tersedia pada aplikasi.
 
 ---
 
