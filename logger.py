@@ -1,0 +1,149 @@
+import logging
+import os
+import sys
+from logging.handlers import RotatingFileHandler
+from datetime import datetime
+
+# Folder logs
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# ANSI Colors untuk console
+class ColorFormatter(logging.Formatter):
+    COLORS = {
+        'DEBUG': '\033[94m',     # Blue
+        'INFO': '\033[92m',      # Green
+        'WARNING': '\033[93m',   # Yellow
+        'ERROR': '\033[91m',     # Red
+        'CRITICAL': '\033[95m',  # Magenta
+    }
+    RESET = '\033[0m'
+    
+    def format(self, record):
+        color = self.COLORS.get(record.levelname, self.RESET)
+        record.levelname = f"{color}{record.levelname}{self.RESET}"
+        return super().format(record)
+
+
+def setup_logger(name="security_analyzer", log_level=logging.INFO):
+    """
+    Setup logger terpusat dengan:
+    - Console handler (berwarna)
+    - File handler (semua log, rotasi 5MB x 5 file)
+    - Error handler (hanya ERROR & CRITICAL)
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(log_level)
+    
+    # Hindari duplicate handler jika dipanggil berkali-kali
+    if logger.handlers:
+        return logger
+    
+    # Format untuk file log
+    file_formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(name)s | %(filename)s:%(lineno)d | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Format untuk console (berwarna)
+    console_formatter = ColorFormatter(
+        '%(asctime)s | %(levelname)-8s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    
+    # =========================================================================
+    # 1. Console Handler (output ke terminal dengan warna)
+    # =========================================================================
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+    
+    # =========================================================================
+    # 2. File Handler - app.log (semua log, rotasi otomatis)
+    # =========================================================================
+    app_log_path = os.path.join(LOG_DIR, "app.log")
+    app_handler = RotatingFileHandler(
+        app_log_path,
+        maxBytes=5 * 1024 * 1024,  # 5 MB
+        backupCount=5,              # Keep 5 backup files
+        encoding='utf-8'
+    )
+    app_handler.setLevel(logging.DEBUG)
+    app_handler.setFormatter(file_formatter)
+    logger.addHandler(app_handler)
+    
+    # =========================================================================
+    # 3. File Handler - error.log (hanya ERROR & CRITICAL)
+    # =========================================================================
+    error_log_path = os.path.join(LOG_DIR, "error.log")
+    error_handler = RotatingFileHandler(
+        error_log_path,
+        maxBytes=5 * 1024 * 1024,
+        backupCount=5,
+        encoding='utf-8'
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(file_formatter)
+    logger.addHandler(error_handler)
+    
+    return logger
+
+
+def get_logger(name=None):
+    """Ambil logger yang sudah di-setup"""
+    if name:
+        return logging.getLogger(f"security_analyzer.{name}")
+    return logging.getLogger("security_analyzer")
+
+
+def log_exception(logger, message="Exception occurred"):
+    """Log exception lengkap dengan stack trace"""
+    logger.exception(message)
+
+
+# =============================================================================
+# Global Exception Handler (menangkap SEMUA error yang tidak tertangani)
+# =============================================================================
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Handler untuk uncaught exceptions"""
+    logger = get_logger()
+    
+    # Jangan log KeyboardInterrupt (Ctrl+C)
+    if issubclass(exc_type, KeyboardInterrupt):
+        logger.warning("Aplikasi dihentikan oleh user (Ctrl+C)")
+        return
+    
+    logger.critical(
+        f"UNCAUGHT EXCEPTION: {exc_type.__name__}",
+        exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
+def setup_global_exception_handler():
+    """Pasang global exception handler"""
+    sys.excepthook = global_exception_handler
+
+
+# =============================================================================
+# Utility: Lihat isi log
+# =============================================================================
+def view_logs(log_type="app", lines=50):
+    """Lihat isi log terakhir"""
+    log_file = os.path.join(LOG_DIR, f"{log_type}.log")
+    
+    if not os.path.exists(log_file):
+        print(f"[!] File log tidak ditemukan: {log_file}")
+        return
+    
+    print(f"\n{'='*70}")
+    print(f"📄 ISI LOG: {log_file} (terakhir {lines} baris)")
+    print(f"{'='*70}\n")
+    
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            log_lines = f.readlines()
+            for line in log_lines[-lines:]:
+                print(line.rstrip())
+    except Exception as e:
+        print(f"[!] Error membaca log: {e}")
