@@ -1,7 +1,7 @@
 # 🔒 Deep Project Security & Bug Analyzer
 
-[![License: MIT](https://shields.io)](https://opensource.org)
-[![Python Version](https://shields.io)](https://python.org)
+https://img.shields.io/badge/License-MIT-orange?logo=shield  https://img.shields.io/badge/Python-Version-blue
+
 
 **Deep Project Security & Bug Analyzer** adalah *tool* keamanan mutakhir yang dirancang khusus untuk mendeteksi kerentanan, bug, dan anomali secara mendalam di dalam kode sumber Anda. 
 
@@ -153,4 +153,4 @@ Aplikasi ini dilengkapi dengan pustaka deteksi untuk berbagai kerentanan populer
 
 ## 📝 Lisensi
 
-Didistribusikan di bawah **[MIT License](LICENSE.md)**.
+**[MIT License](LICENSE.md)**.
