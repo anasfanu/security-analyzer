@@ -1,6 +1,7 @@
-# 🔒 Deep Project Security & Bug Analyzer
+# 🔒 Security Analyzer
 
-https://img.shields.io/badge/License-MIT-orange?logo=shield  https://img.shields.io/badge/Python-Version-blue
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![Python Version](https://img.shields.io/badge/Python-Version-green.svg)]
 
 
 **Deep Project Security & Bug Analyzer** adalah *tool* keamanan mutakhir yang dirancang khusus untuk mendeteksi kerentanan, bug, dan anomali secara mendalam di dalam kode sumber Anda. 
@@ -42,7 +43,7 @@ pip install -r requirements.txt
 
 ## 📖 Cara Penggunaan
 
-### 💻 Mode CLI (Command Line Interface)
+### 💻 CLI (Command Line Interface)
 
 Jalankan pemindaian dasar atau lakukan ekspor laporan langsung melalui terminal Anda:
 
@@ -58,18 +59,6 @@ python main.py /path/to/project --export both
 # Menerapkan perbaikan otomatis berdasarkan laporan JSON
 python main.py --fix output/scan_report_20261027_120000.json
 ```
-
-### 🌐 Mode Web
-
-Aktifkan antarmuka berbasis web untuk pengalaman pemindaian visual yang lebih interaktif:
-
-```bash
-# Jalankan server aplikasi web
-python web_app.py
-```
-Setelah server aktif, buka browser Anda dan akses: `http://localhost:5000`
-
----
 
 ## 🛠️ Panduan Perintah (CLI Reference)
 

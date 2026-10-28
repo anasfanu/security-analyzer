@@ -478,7 +478,7 @@
                 </div>
                 <div class="form-group">
                     <label for="targetPath">Path Direktori Project:</label>
-                    <input type="text" id="targetPath" placeholder="/path/to/your/project" value="">
+                    <input type="text" id="targetPath" placeholder="C:\Users\ACER\pembuatwebsite atau ." value=".">
                 </div>
                 <button class="btn" id="scanBtn" onclick="startScan()"><span aria-hidden="true">↗</span> Mulai Pemindaian</button>
             </div>
@@ -521,13 +521,22 @@
                 <div class="issue-list" id="issueList"></div>
             </div>
         </div>
+
+        <div class="footer">
+            &copy; 2026 Security Analyzer Smasher. Built for secure development.
+        </div>
     </div>
     
     <script>
         let currentReportFile = null;
         
         async function startScan() {
-            const targetPath = document.getElementById('targetPath').value;
+            const targetPath = document.getElementById('targetPath').value.trim();
+            if (!targetPath) {
+                alert('Silakan masukkan path direktori project terlebih dahulu.');
+                return;
+            }
+
             const scanBtn = document.getElementById('scanBtn');
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
@@ -561,16 +570,6 @@
             }
         }
         
-        function escapeHTML(value) {
-            return String(value ?? '').replace(/[&<>"']/g, character => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            })[character]);
-        }
-
         function displayResults(data) {
             const results = document.getElementById('results');
             results.style.display = 'block';
@@ -580,30 +579,70 @@
             document.getElementById('criticalCount').textContent = data.summary.critical_count;
             
             const issueList = document.getElementById('issueList');
-            issueList.innerHTML = '';
+            issueList.replaceChildren(); // Cara aman menghapus semua child
             
             data.issues.forEach(issue => {
                 const issueDiv = document.createElement('div');
                 const severity = String(issue.severity ?? 'LOW').toUpperCase();
                 const safeSeverity = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(severity) ? severity : 'LOW';
                 issueDiv.className = `issue ${safeSeverity}`;
-                issueDiv.innerHTML = `
-                    <div class="issue-header">
-                        <span class="severity-badge ${safeSeverity}">${escapeHTML(safeSeverity)}</span>
-                        <span class="file-path">${escapeHTML(issue.file)} : Baris ${escapeHTML(issue.line)}</span>
-                    </div>
-                    <h4>[${escapeHTML(issue.id)}] ${escapeHTML(issue.kategori)}</h4>
-                    <div class="code-block">${escapeHTML(issue.content)}</div>
-                    <p><strong>Info:</strong> ${escapeHTML(issue.info)}</p>
-                    <p><strong>Solusi:</strong> ${escapeHTML(issue.solusi)}</p>
-                `;
+                
+                // Header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'issue-header';
+                
+                const badge = document.createElement('span');
+                badge.className = `severity-badge ${safeSeverity}`;
+                badge.textContent = safeSeverity;
+                
+                const filePath = document.createElement('span');
+                filePath.className = 'file-path';
+                filePath.textContent = `${issue.file} : Baris ${issue.line}`;
+                
+                headerDiv.appendChild(badge);
+                headerDiv.appendChild(filePath);
+                
+                // Title
+                const title = document.createElement('h4');
+                title.textContent = `[${issue.id}] ${issue.kategori}`;
+                
+                // Code Block (100% aman dari XSS, tidak menggunakan innerHTML)
+                const codeBlock = document.createElement('div');
+                codeBlock.className = 'code-block';
+                codeBlock.textContent = issue.content;
+                
+                // Info
+                const infoP = document.createElement('p');
+                const infoStrong = document.createElement('strong');
+                infoStrong.textContent = 'Info: ';
+                const infoText = document.createElement('span');
+                infoText.textContent = issue.info;
+                infoP.appendChild(infoStrong);
+                infoP.appendChild(infoText);
+                
+                // Solusi
+                const solusiP = document.createElement('p');
+                const solusiStrong = document.createElement('strong');
+                solusiStrong.textContent = 'Solusi: ';
+                const solusiText = document.createElement('span');
+                solusiText.textContent = issue.solusi;
+                solusiP.appendChild(solusiStrong);
+                solusiP.appendChild(solusiText);
+                
+                // Assemble
+                issueDiv.appendChild(headerDiv);
+                issueDiv.appendChild(title);
+                issueDiv.appendChild(codeBlock);
+                issueDiv.appendChild(infoP);
+                issueDiv.appendChild(solusiP);
+                
                 issueList.appendChild(issueDiv);
             });
         }
         
         function downloadReport() {
             if (currentReportFile) {
-                const filename = currentReportFile.split('/').pop();
+                const filename = currentReportFile.split(/[/\\]/).pop(); // Handle Windows & Linux paths
                 window.location.href = `/download/${filename}`;
             }
         }
