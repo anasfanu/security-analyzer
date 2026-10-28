@@ -100,7 +100,7 @@ class AutoFixer:
             for rule_id, info in unfixable_by_id.items():
                 print(f"  [{info['severity']}] {rule_id} - {info['kategori']} ({info['count']}x)")
             print(f"{'='*70}\n")
-            print("📖 Lihat MANUAL_FIXES.md untuk panduan perbaikan manual.\n")
+            print("📖 Panduan perbaikan manual akan ditampilkan setelah scan.\n")
         
         # Group fixable issues by file
         issues_by_file = {}
@@ -119,6 +119,7 @@ class AutoFixer:
     
     def _process_file(self, file_path: str, issues: List[Dict], dry_run: bool, 
                      interactive: bool, root_dir: str):
+        """Proses satu file dengan semua issues-nya"""
         self.stats['files_processed'] += 1
         
         if not os.path.exists(file_path):
@@ -129,43 +130,57 @@ class AutoFixer:
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
-            fixed_lines = lines.copy()
             fixes_applied = []
+            
+            # Sort issues by line number (descending) untuk menghindari pergeseran baris
             issues_sorted = sorted(issues, key=lambda x: x['line'], reverse=True)
             
             for issue in issues_sorted:
                 line_idx = issue['line'] - 1
                 
-                if line_idx < 0 or line_idx >= len(fixed_lines):
+                if line_idx < 0 or line_idx >= len(lines):
                     logger.warning(f"Line number out of range: {issue['line']} di {file_path}")
                     self.stats['issues_skipped'] += 1
                     continue
                 
+                # Interactive mode
                 if interactive:
-                    print(f"\n[?] Fix issue ini?\n    File: {file_path}:{issue['line']}\n    Rule: {issue['id']} - {issue['kategori']}\n    Code: {issue['content'][:80]}")
+                    print(f"\n[?] Fix issue ini?")
+                    print(f"    File: {file_path}:{issue['line']}")
+                    print(f"    Rule: {issue['id']} - {issue['kategori']}")
+                    print(f"    Code: {issue['content'][:80]}")
                     response = input("    [y/N]: ").strip().lower()
                     if response != 'y':
                         self.stats['issues_skipped'] += 1
                         continue
                 
+                # Ambil fungsi fix yang sesuai
                 fix_func = self.fix_strategies.get(issue['id'])
                 if fix_func:
                     # Special handling untuk SEC-001 (butuh root_dir untuk .env)
                     if issue['id'] == 'SEC-001':
-                        result = fix_func(fixed_lines, line_idx, issue, root_dir, dry_run)
+                        result = fix_func(lines, line_idx, issue, root_dir, dry_run)
                     else:
-                        result = fix_func(fixed_lines, line_idx, issue)
+                        result = fix_func(lines, line_idx, issue)
                     
-                    if result['fixed']:
-                        fixed_lines = result['lines']
+                    # ✅ PERBAIKAN: Cukup cek 'fixed', tidak perlu ambil 'lines'
+                    # karena list 'lines' sudah dimodifikasi in-place oleh fix_func
+                    if result.get('fixed'):
                         fixes_applied.append({
-                            'line': issue['line'], 
-                            'rule_id': issue['id'], 
+                            'line': issue['line'],
+                            'rule_id': issue['id'],
+                            'kategori': issue['kategori'],
                             'description': result.get('description', 'Fixed')
                         })
                         self.stats['issues_fixed'] += 1
-                        self.stats['by_severity'][issue['severity']] = self.stats['by_severity'].get(issue['severity'], 0) + 1
-                        self.stats['by_category'][issue['kategori']] = self.stats['by_category'].get(issue['kategori'], 0) + 1
+                        
+                        # Update severity stats
+                        severity = issue['severity']
+                        self.stats['by_severity'][severity] = self.stats['by_severity'].get(severity, 0) + 1
+                        
+                        # Update category stats
+                        kategori = issue['kategori']
+                        self.stats['by_category'][kategori] = self.stats['by_category'].get(kategori, 0) + 1
                         
                         # Track SEC-001 special stats
                         if issue['id'] == 'SEC-001':
@@ -174,23 +189,32 @@ class AutoFixer:
                             self.stats['credentials_migrated'] += result.get('migrated_count', 0)
                     else:
                         self.stats['issues_skipped'] += 1
+                        if result.get('reason'):
+                            logger.debug(f"Fix skipped: {result['reason']}")
             
+            # ✅ PERBAIKAN: Gunakan 'lines' langsung (sudah dimodifikasi in-place)
             if fixes_applied:
-                new_content = ''.join(fixed_lines)
+                new_content = ''.join(lines)
+                
                 if dry_run:
                     print(f"\n[DRY-RUN] Akan fix {len(fixes_applied)} issue di: {file_path}")
                     for fix in fixes_applied:
                         print(f"  • Baris {fix['line']}: [{fix['rule_id']}] {fix['description']}")
                 else:
+                    # Create backup
                     backup_path = self._create_backup(file_path)
                     self.stats['backups_created'] += 1
+                    
+                    # Write new content
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(new_content)
+                    
                     self.stats['files_fixed'] += 1
                     print(f"\n[✓] Fixed {len(fixes_applied)} issue di: {file_path}")
                     for fix in fixes_applied:
                         print(f"  • Baris {fix['line']}: [{fix['rule_id']}] {fix['description']}")
                     print(f"  💾 Backup: {backup_path}")
+        
         except Exception as e:
             logger.exception(f"Error processing {file_path}: {e}")
     
@@ -461,67 +485,64 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
     # SEC-001 - SPECIAL LOGIC (Hardcoded Credentials Migration)
     # =========================================================================
     
-    def _fix_hardcoded_credentials(self, lines: List[str], line_idx: int, 
+    def _fix_hardcoded_credentials(self, lines: List[str], line_idx: int,
                                    issue: Dict, root_dir: str, dry_run: bool) -> Dict:
         """SEC-001: Migrate hardcoded credentials ke .env file (hanya jika .env sudah ada)"""
         line = lines[line_idx]
-        
+
         # Pattern: $password = "secret123"; atau $api_key = 'abc123';
         pattern = r'(\$\w+)\s*=\s*[\'"]([^\'"]{4,})[\'"]\s*;'
-        
+
         match = re.search(pattern, line, re.IGNORECASE)
         if not match:
             return {'fixed': False, 'reason': 'Pattern credential tidak cocok'}
-        
-        var_name = match.group(1)  # e.g., $password
-        cred_value = match.group(2)  # e.g., secret123
-        
-        # Convert variable name to env variable name
-        # $password → PASSWORD, $api_key → API_KEY
+
+        var_name = match.group(1)
+        cred_value = match.group(2)
         env_var_name = var_name.lstrip('$').upper()
-        
-        # Cek keberadaan file .env di root directory
+
+        # Cek keberadaan file .env
         env_file_path = os.path.join(root_dir, '.env')
-        
-        # JIKA .ENV TIDAK ADA: Berhenti dan beri saran manual
+
+        # Jika .env TIDAK ADA -> jangan buat, beri instruksi manual
         if not os.path.exists(env_file_path):
             return {
                 'fixed': False,
                 'reason': (
                     f"File .env tidak ditemukan di '{root_dir}'. "
-                    f"Silakan buat file '.env' secara manual di folder tersebut, "
+                    f"Buat file '.env' secara manual di folder tersebut, "
                     f"tambahkan baris '{env_var_name}={cred_value}', "
                     f"lalu jalankan auto-fix kembali."
                 )
             }
-        
-        # JIKA .ENV SUDAH ADA: Lanjutkan migrasi
+
+        # Jika .env ADA -> lanjutkan migrasi
         with open(env_file_path, 'r', encoding='utf-8') as f:
             env_content = f.read()
-        
-        # Cek apakah variabel sudah ada di .env untuk menghindari duplikasi
+
         if f"{env_var_name}=" not in env_content:
             if not dry_run:
-                # Ambil informasi asal file dan baris dari issue
                 source_file = issue.get('file', 'unknown_file')
                 source_line = issue.get('line', 'unknown_line')
-                
-                # Mode 'a' (append) secara otomatis menaruh data di PALING BAWAH file
+
+                # Append = tulis di paling bawah
                 with open(env_file_path, 'a', encoding='utf-8') as f:
-                    f.write(f"\n# Dipindahkan dari {source_file} baris {source_line} oleh Security Analyzer\n")
+                    f.write(
+                        f"\n# Dipindahkan dari {source_file} baris {source_line} "
+                        f"oleh SYKIL Security Analyzer\n"
+                    )
                     f.write(f"{env_var_name}={cred_value}\n")
-                
+
                 logger.info(f"Appended {env_var_name} to .env (from {source_file}:{source_line})")
-        
-        # Ganti kode di file asli dengan getenv()
-        # $password = "secret123"; → $password = getenv('PASSWORD') ?: 'secret123';
+
+        # Ganti kode asli dengan getenv()
         new_line = re.sub(
             pattern,
-            lambda m: f"{m.group(1)} = getenv('{env_var_name}') ?: '{m.group(2)}'; // Auto-migrated to .env",
+            lambda m: f"{m.group(1)} = getenv('{env_var_name}') ?: '{m.group(2)}'; // Migrated by SYKIL",
             line,
             flags=re.IGNORECASE
         )
-        
+
         if new_line != line:
             lines[line_idx] = new_line
             return {
@@ -530,7 +551,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
                 'env_created': False,
                 'migrated_count': 1
             }
-        
+
         return {'fixed': False, 'reason': 'Gagal replace credential di kode'}
     
     # =========================================================================

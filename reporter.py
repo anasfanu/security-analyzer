@@ -23,7 +23,7 @@ class Reporter:
             return
         
         print(f"\n{COLORS['BLUE']}{'='*70}")
-        print(f"{'HASIL PEMINDAIAN KEAMANAN':^70}")
+        print(f"{'SYKIL : HASIL PEMINDAIAN KEAMANAN':^70}")
         print(f"{'='*70}{COLORS['RESET']}\n")
         
         # Group by file
@@ -52,7 +52,7 @@ class Reporter:
         # Summary
         critical_count = sum(1 for i in issues if i['severity'] == 'CRITICAL')
         print(f"\n{COLORS['BLUE']}{'='*70}")
-        print(f"{'RINGKASAN':^70}")
+        print(f"{'SYKIL : RINGKASAN':^70}")
         print(f"{'='*70}{COLORS['RESET']}")
         print(f"Total File Diperiksa : {total_files}")
         print(f"Total Masalah        : {len(issues)}")
@@ -61,15 +61,89 @@ class Reporter:
             print(f"Celaha CRITICAL      : {COLORS['RED']}{critical_count} Ditemukan!{COLORS['RESET']}")
     
     @staticmethod
+    def display_manual_fixes(issues: List[Dict]):
+        """Tampilkan panduan manual untuk issues yang tidak bisa di-fix otomatis"""
+        
+        # Load manual fixes dari JSON
+        manual_fixes_file = "manual_fixes.json"
+        if not os.path.exists(manual_fixes_file):
+            return
+        
+        try:
+            with open(manual_fixes_file, 'r', encoding='utf-8') as f:
+                manual_fixes_data = json.load(f)
+            
+            manual_fixes = {fix['rule_id']: fix for fix in manual_fixes_data.get('manual_fixes', [])}
+        except Exception as e:
+            print(f"{COLORS['RED']}[!] Error membaca manual_fixes.json: {e}{COLORS['RESET']}")
+            return
+        
+        # Filter issues yang butuh manual fix
+        unfixable_issues = [i for i in issues if i['id'] in manual_fixes]
+        
+        if not unfixable_issues:
+            return
+        
+        print(f"\n{COLORS['BLUE']}{'='*70}")
+        print(f"{'SYKIL : PANDUAN PERBAIKAN MANUAL':^70}")
+        print(f"{'='*70}{COLORS['RESET']}\n")
+        
+        # Group by rule_id
+        issues_by_rule = {}
+        for issue in unfixable_issues:
+            rule_id = issue['id']
+            if rule_id not in issues_by_rule:
+                issues_by_rule[rule_id] = []
+            issues_by_rule[rule_id].append(issue)
+        
+        for rule_id, rule_issues in issues_by_rule.items():
+            fix_info = manual_fixes.get(rule_id)
+            if not fix_info:
+                continue
+            
+            sev_color = COLORS['RED'] if fix_info['severity'] == 'CRITICAL' else (
+                COLORS['YELLOW'] if fix_info['severity'] == 'HIGH' else COLORS['CYAN']
+            )
+            
+            print(f"{sev_color}[{fix_info['severity']}]{COLORS['RESET']} {COLORS['CYAN']}{rule_id}{COLORS['RESET']} - {fix_info['kategori']}")
+            print(f"  {COLORS['YELLOW']}Deskripsi:{COLORS['RESET']} {fix_info['description']}")
+            print(f"  {COLORS['YELLOW']}Jumlah ditemukan:{COLORS['RESET']} {len(rule_issues)}")
+            
+            # Tampilkan contoh
+            if fix_info.get('examples'):
+                example = fix_info['examples'][0]
+                print(f"\n  {COLORS['GREEN']}Contoh Perbaikan:{COLORS['RESET']}")
+                print(f"  {COLORS['RED']}Sebelum:{COLORS['RESET']}")
+                for line in example['before'].split('\n'):
+                    print(f"    {line}")
+                print(f"  {COLORS['GREEN']}Sesudah:{COLORS['RESET']}")
+                for line in example['after'].split('\n'):
+                    print(f"    {line}")
+                
+                print(f"\n  {COLORS['CYAN']}Langkah-langkah:{COLORS['RESET']}")
+                for i, step in enumerate(example['steps'], 1):
+                    print(f"    {i}. {step}")
+            
+            # Tampilkan referensi
+            if fix_info.get('references'):
+                print(f"\n  {COLORS['BLUE']}Referensi:{COLORS['RESET']}")
+                for ref in fix_info['references']:
+                    print(f"    • {ref}")
+            
+            print(f"\n{'-'*70}\n")
+    
+    @staticmethod
     def export_json(issues: List[Dict], total_files: int, target_dir: str, output_dir: str = "output"):
         """Export ke JSON dengan target_dir"""
         os.makedirs(output_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"scan_report_{timestamp}.json"
+        filename = f"sykil_report_{timestamp}.json"
         filepath = os.path.join(output_dir, filename)
         
         report = {
+            'tool': 'SYKIL : Security Analyzer',
+            'version': '1.0.0',
             'scan_date': datetime.now().isoformat(),
             'target_dir': os.path.abspath(target_dir),
             'total_files': total_files,
@@ -90,19 +164,32 @@ class Reporter:
         os.makedirs(output_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"scan_report_{timestamp}.html"
+        filename = f"sykil_report_{timestamp}.html"
         filepath = os.path.join(output_dir, filename)
+        
+        # Load manual fixes untuk ditampilkan di HTML
+        manual_fixes = {}
+        manual_fixes_file = "manual_fixes.json"
+        if os.path.exists(manual_fixes_file):
+            try:
+                with open(manual_fixes_file, 'r', encoding='utf-8') as f:
+                    manual_fixes_data = json.load(f)
+                    manual_fixes = {fix['rule_id']: fix for fix in manual_fixes_data.get('manual_fixes', [])}
+            except:
+                pass
         
         html_content = f"""<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Keamanan - {datetime.now().strftime("%Y-%m-%d %H:%M")}</title>
+    <title>SYKIL : Security Analyzer - Laporan {datetime.now().strftime("%Y-%m-%d %H:%M")}</title>
     <style>
         body {{ font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }}
         .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-        h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+        .brand {{ text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #3498db; }}
+        .brand h1 {{ color: #2c3e50; font-size: 2.2em; margin-bottom: 5px; }}
+        .brand .tagline {{ color: #7f8c8d; font-style: italic; }}
         .summary {{ background: #ecf0f1; padding: 20px; border-radius: 5px; margin: 20px 0; }}
         .issue {{ background: #fff; border-left: 4px solid #e74c3c; padding: 15px; margin: 15px 0; border-radius: 4px; }}
         .issue.CRITICAL {{ border-left-color: #c0392b; }}
@@ -115,13 +202,24 @@ class Reporter:
         .severity.MEDIUM {{ background: #f39c12; }}
         .severity.LOW {{ background: #3498db; }}
         .file-path {{ font-family: monospace; color: #7f8c8d; font-size: 14px; }}
-        .code {{ background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; }}
+        .code {{ background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }}
         .info-label {{ font-weight: bold; color: #34495e; }}
+        .manual-fixes {{ margin-top: 40px; }}
+        .manual-fix {{ background: #fff; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 4px; }}
+        .manual-fix h3 {{ color: #2c3e50; margin-bottom: 10px; }}
+        .manual-fix h4 {{ color: #34495e; margin-top: 15px; margin-bottom: 10px; }}
+        .manual-fix ol {{ margin-left: 20px; }}
+        .manual-fix ul {{ margin-left: 20px; }}
+        .manual-fix a {{ color: #3498db; }}
+        .footer {{ text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #95a5a6; font-size: 0.9em; }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔒 Laporan Pemindaian Keamanan</h1>
+        <div class="brand">
+            <h1>🔒 SYKIL : Security Analyzer</h1>
+            <div class="tagline">Smashing Vulnerabilities, Securing Code</div>
+        </div>
         <p><strong>Tanggal Scan:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
         
         <div class="summary">
@@ -146,7 +244,52 @@ class Reporter:
         </div>
 """
         
+        # Tambahkan section manual fixes jika ada
+        if manual_fixes and any(i['id'] in manual_fixes for i in issues):
+            html_content += """
+        <div class="manual-fixes">
+            <h2>📖 Panduan Perbaikan Manual</h2>
+            <p>Berikut adalah panduan detail untuk masalah yang memerlukan perbaikan manual:</p>
+"""
+            
+            for rule_id, fix_info in manual_fixes.items():
+                if any(i['id'] == rule_id for i in issues):
+                    html_content += f"""
+            <div class="manual-fix">
+                <h3>[{rule_id}] {fix_info['kategori']}</h3>
+                <p><strong>Deskripsi:</strong> {fix_info['description']}</p>
+"""
+                    
+                    if fix_info.get('examples'):
+                        example = fix_info['examples'][0]
+                        html_content += f"""
+                <h4>Contoh Perbaikan:</h4>
+                <p><strong>Sebelum:</strong></p>
+                <div class="code">{example['before']}</div>
+                <p><strong>Sesudah:</strong></p>
+                <div class="code">{example['after']}</div>
+                <h4>Langkah-langkah:</h4>
+                <ol>
+"""
+                        for step in example['steps']:
+                            html_content += f"                    <li>{step}</li>\n"
+                        html_content += "                </ol>\n"
+                    
+                    if fix_info.get('references'):
+                        html_content += "                <h4>Referensi:</h4>\n                <ul>\n"
+                        for ref in fix_info['references']:
+                            html_content += f"                    <li><a href='{ref}' target='_blank'>{ref}</a></li>\n"
+                        html_content += "                </ul>\n"
+                    
+                    html_content += "            </div>\n"
+            
+            html_content += "        </div>\n"
+        
         html_content += """
+        <div class="footer">
+            <p>Laporan dibuat oleh <strong>SYKIL : Security Analyzer v1.0.0</strong></p>
+            <p>Smashing Vulnerabilities, Securing Code</p>
+        </div>
     </div>
 </body>
 </html>"""

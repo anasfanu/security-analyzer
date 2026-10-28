@@ -1,0 +1,292 @@
+{
+  "version": "1.0.0",
+  "manual_fixes": [
+    {
+      "rule_id": "SEC-002",
+      "severity": "HIGH",
+      "kategori": "SQL Injection",
+      "description": "Variabel langsung disisipkan ke query SQL tanpa sanitasi",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$query = \"SELECT * FROM users WHERE id = $id\";\n$result = $db->query($query);",
+          "after": "$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = :id\");\n$stmt->execute(['id' => $id]);\n$result = $stmt->fetchAll();",
+          "steps": [
+            "Ganti query string dengan prepared statement",
+            "Gunakan named parameter (:id) atau positional parameter (?)",
+            "Pisahkan query preparation dan execution",
+            "Pass parameter sebagai array ke execute()"
+          ]
+        }
+      ],
+      "references": [
+        "https://www.php.net/manual/en/pdo.prepared-statements.php",
+        "https://owasp.org/www-community/attacks/SQL_Injection"
+      ]
+    },
+    {
+      "rule_id": "SEC-004",
+      "severity": "CRITICAL",
+      "kategori": "Remote Code Execution (eval)",
+      "description": "Fungsi eval() memungkinkan eksekusi kode arbitrer",
+      "examples": [
+        {
+          "language": "php",
+          "before": "eval($_POST['code']);",
+          "after": "$allowed_actions = [\n    'action1' => function() { /* logic */ },\n    'action2' => function() { /* logic */ }\n];\n\n$action = $_POST['action'] ?? '';\nif (isset($allowed_actions[$action])) {\n    $allowed_actions[$action]();\n} else {\n    die('Invalid action');\n}",
+          "steps": [
+            "HAPUS eval() segera",
+            "Identifikasi logika bisnis yang ingin dicapai",
+            "Ganti dengan array mapping atau switch statement",
+            "Validasi input sebelum eksekusi"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-community/attacks/Code_Injection"
+      ]
+    },
+    {
+      "rule_id": "SEC-005",
+      "severity": "CRITICAL",
+      "kategori": "Command Injection",
+      "description": "Input user langsung dieksekusi sebagai command system",
+      "examples": [
+        {
+          "language": "php",
+          "before": "system(\"ping \" . $_GET['host']);",
+          "after": "$host = escapeshellarg($_GET['host']);\nif (preg_match('/^[a-zA-Z0-9.-]+$/', $_GET['host'])) {\n    system(\"ping \" . $host);\n} else {\n    die('Invalid hostname');\n}",
+          "steps": [
+            "Gunakan escapeshellarg() untuk escape argument",
+            "Validasi input dengan regex whitelist",
+            "Tolak input yang tidak sesuai pattern",
+            "Jangan pernah concat input user langsung ke command"
+          ]
+        }
+      ],
+      "references": [
+        "https://www.php.net/manual/en/function.escapeshellarg.php"
+      ]
+    },
+    {
+      "rule_id": "SEC-006",
+      "severity": "CRITICAL",
+      "kategori": "File Inclusion Vulnerability",
+      "description": "File inclusion dengan input user memungkinkan LFI/RFI",
+      "examples": [
+        {
+          "language": "php",
+          "before": "include($_GET['page']);",
+          "after": "$allowed_pages = ['home', 'about', 'contact'];\n$page = $_GET['page'] ?? 'home';\n\nif (in_array($page, $allowed_pages)) {\n    include(\"pages/{$page}.php\");\n} else {\n    die('Invalid page');\n}",
+          "steps": [
+            "Buat whitelist file yang boleh di-include",
+            "Validasi input terhadap whitelist",
+            "Gunakan in_array() untuk pengecekan",
+            "Reject input yang tidak ada di whitelist"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+      ]
+    },
+    {
+      "rule_id": "SEC-007",
+      "severity": "HIGH",
+      "kategori": "Path Traversal",
+      "description": "Directory traversal sequence memungkinkan akses file di luar direktori",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$file = $_GET['file'];\ninclude($file);",
+          "after": "$base_dir = realpath('/var/www/app/files/');\n$file = realpath($base_dir . '/' . $_GET['file']);\n\nif ($file && strpos($file, $base_dir) === 0) {\n    include($file);\n} else {\n    die('Invalid file path');\n}",
+          "steps": [
+            "Tentukan base directory yang diizinkan",
+            "Gunakan realpath() untuk resolve path absolut",
+            "Validasi bahwa resolved path masih di dalam base directory",
+            "Gunakan strpos() untuk pengecekan prefix"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-community/attacks/Path_Traversal"
+      ]
+    },
+    {
+      "rule_id": "SEC-008",
+      "severity": "HIGH",
+      "kategori": "Insecure Deserialization",
+      "description": "Deserialisasi data dari input user memungkinkan RCE",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$data = unserialize($_COOKIE['data']);",
+          "after": "$data = json_decode($_COOKIE['data'], true);\nif (!is_array($data) || !isset($data['allowed_key'])) {\n    die('Invalid data');\n}",
+          "steps": [
+            "Hindari unserialize() dengan input user",
+            "Gunakan json_decode() sebagai alternatif",
+            "Validasi struktur data setelah decode",
+            "Cek tipe data dan required keys"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Deserialization_of_Untrusted_Data"
+      ]
+    },
+    {
+      "rule_id": "SEC-014",
+      "severity": "HIGH",
+      "kategori": "Open Redirect",
+      "description": "Redirect dengan input user memungkinkan phishing",
+      "examples": [
+        {
+          "language": "php",
+          "before": "header(\"Location: \" . $_GET['url']);",
+          "after": "$allowed_domains = ['example.com', 'trusted.com'];\n$url = $_GET['url'];\n$parsed = parse_url($url);\n\nif (in_array($parsed['host'] ?? '', $allowed_domains)) {\n    header(\"Location: \" . $url);\n} else {\n    die('Invalid redirect URL');\n}",
+          "steps": [
+            "Buat whitelist domain yang diizinkan",
+            "Parse URL dengan parse_url()",
+            "Validasi host terhadap whitelist",
+            "Reject URL dengan domain tidak dikenal"
+          ]
+        }
+      ],
+      "references": [
+        "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+      ]
+    },
+    {
+      "rule_id": "SEC-015",
+      "severity": "HIGH",
+      "kategori": "XML External Entity (XXE)",
+      "description": "XML parsing tanpa menonaktifkan external entities",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$xml = simplexml_load_string($_POST['xml']);",
+          "after": "libxml_disable_entity_loader(true);\n$xml = simplexml_load_string($_POST['xml'], 'SimpleXMLElement', LIBXML_NOENT);",
+          "steps": [
+            "Disable external entity loader sebelum parsing",
+            "Gunakan flag LIBXML_NOENT",
+            "Pertimbangkan menggunakan JSON sebagai alternatif",
+            "Validasi struktur XML setelah parsing"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/XML_External_Entity_(XXE)_Processing"
+      ]
+    },
+    {
+      "rule_id": "SEC-016",
+      "severity": "HIGH",
+      "kategori": "Server-Side Request Forgery (SSRF)",
+      "description": "HTTP request dengan URL dari input user",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$content = file_get_contents($_GET['url']);",
+          "after": "$url = $_GET['url'];\n$parsed = parse_url($url);\n\n$allowed_hosts = ['api.example.com', 'cdn.example.com'];\nif (!in_array($parsed['host'] ?? '', $allowed_hosts)) {\n    die('URL not allowed');\n}\n\nif (filter_var($parsed['host'], FILTER_VALIDATE_IP)) {\n    die('Internal IP not allowed');\n}\n\n$content = file_get_contents($url);",
+          "steps": [
+            "Buat whitelist domain yang diizinkan",
+            "Parse URL dan validasi host",
+            "Block internal IP addresses",
+            "Gunakan cURL dengan timeout untuk request"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-community/attacks/Server_Side_Request_Forgery"
+      ]
+    },
+    {
+      "rule_id": "SEC-021",
+      "severity": "HIGH",
+      "kategori": "Insecure Direct Object Reference (IDOR)",
+      "description": "Query database dengan ID dari input user tanpa authorization",
+      "examples": [
+        {
+          "language": "php",
+          "before": "$user = User::find($_GET['id']);",
+          "after": "$user = User::find($_GET['id']);\n\nif (!$user || $user->owner_id !== auth()->id()) {\n    abort(403, 'Unauthorized');\n}",
+          "steps": [
+            "Selalu cek authorization setelah query",
+            "Validasi bahwa user memiliki akses ke resource",
+            "Gunakan framework authorization helpers",
+            "Return 403 jika tidak authorized"
+          ]
+        }
+      ],
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References"
+      ]
+    },
+    {
+      "rule_id": "CVE-2026-109618",
+      "severity": "CRITICAL",
+      "kategori": "RCE (PHP2Shell)",
+      "description": "Backdoor PHP yang memungkinkan eksekusi command dari input user",
+      "examples": [
+        {
+          "language": "php",
+          "before": "eval($_GET['code']);\nsystem($_POST['cmd']);",
+          "after": "// HAPUS SEGERA! Ini adalah backdoor.\n// Jangan pernah gunakan input user di fungsi eksekusi.",
+          "steps": [
+            "HAPUS kode ini SEGERA",
+            "Ini adalah backdoor/webshell",
+            "Jangan pernah gunakan input user di eval(), system(), exec()",
+            "Audit seluruh project untuk backdoor serupa"
+          ]
+        }
+      ],
+      "references": [
+        "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-109618"
+      ]
+    },
+    {
+      "rule_id": "CVE-2024-42005",
+      "severity": "HIGH",
+      "kategori": "Django SQL Injection",
+      "description": "Django ORM dengan string formatting memungkinkan SQL Injection",
+      "examples": [
+        {
+          "language": "python",
+          "before": "User.objects.raw(f\"SELECT * FROM users WHERE id = {user_id}\")",
+          "after": "User.objects.raw(\"SELECT * FROM users WHERE id = %s\", [user_id])",
+          "steps": [
+            "Hindari f-string atau .format() di query ORM",
+            "Gunakan parameter placeholder (%s untuk raw query)",
+            "Pass parameter sebagai list/tuple",
+            "Pertimbangkan menggunakan ORM methods (.filter(), .get())"
+          ]
+        }
+      ],
+      "references": [
+        "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-42005"
+      ]
+    },
+    {
+      "rule_id": "CVE-2024-34342",
+      "severity": "HIGH",
+      "kategori": "Next.js SSR SSRF",
+      "description": "Next.js server-side fetch dengan URL dari input user",
+      "examples": [
+        {
+          "language": "javascript",
+          "before": "const data = await fetch(req.query.url);",
+          "after": "const allowedDomains = ['api.example.com'];\nconst url = new URL(req.query.url);\n\nif (!allowedDomains.includes(url.hostname)) {\n    return res.status(403).json({ error: 'Domain not allowed' });\n}\n\nconst data = await fetch(url.toString());",
+          "steps": [
+            "Buat whitelist domain yang diizinkan",
+            "Parse URL dengan URL constructor",
+            "Validasi hostname terhadap whitelist",
+            "Reject URL dengan domain tidak dikenal"
+          ]
+        }
+      ],
+      "references": [
+        "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-34342"
+      ]
+    }
+  ]
+}

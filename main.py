@@ -10,26 +10,32 @@ from logger import setup_logger, get_logger, setup_global_exception_handler, vie
 # Setup global exception handler
 setup_global_exception_handler()
 
-# Setup logger
+# Setup logger untuk SYKIL
 logger = setup_logger()
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🔒 Deep Project Security & Bug Analyzer",
+        prog="sykil",
+        description="🔒 SYKIL : Security Analyzer - Smashing Vulnerabilities, Securing Code",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+╔══════════════════════════════════════════════════════════════╗
+║          SYKIL : Security Analyzer v1.0.0                   ║
+║          Smashing Vulnerabilities, Securing Code            ║
+╚══════════════════════════════════════════════════════════════╝
+
 Contoh penggunaan:
-  python main.py /path/to/project
-  python main.py /path/to/project --export json
-  python main.py /path/to/project --export html
-  python main.py /path/to/project --export both
-  python main.py --fix output/scan_report_20261027_120000.json
-  python main.py --fix output/scan_report.json --dry-run
-  python main.py --fix output/scan_report.json --interactive
-  python main.py --fix output/scan_report.json --export-stats
-  python main.py --view-logs app
-  python main.py --view-logs error
+  sykil /path/to/project
+  sykil /path/to/project --export json
+  sykil /path/to/project --export html
+  sykil /path/to/project --export both
+  sykil --fix output/sykil_report_20261027_120000.json
+  sykil --fix output/sykil_report.json --dry-run
+  sykil --fix output/sykil_report.json --interactive
+  sykil --fix output/sykil_report.json --export-stats
+  sykil --view-logs app
+  sykil --view-logs error
         """
     )
     
@@ -57,6 +63,9 @@ Contoh penggunaan:
     parser.add_argument("--log-lines", type=int, default=50,
                        help="Jumlah baris log yang ditampilkan (default: 50)")
     
+    parser.add_argument("--version", action="version",
+                       version="SYKIL : Security Analyzer v1.0.0")
+    
     args = parser.parse_args()
     
     # =========================================================================
@@ -76,14 +85,16 @@ Contoh penggunaan:
                 print(f"\n[!] Error: File laporan tidak ditemukan: {args.fix}")
                 sys.exit(1)
             
-            # Baca JSON untuk mengetahui folder asli
+            # Baca JSON untuk mengetahui folder asli dan issues
             with open(args.fix, 'r', encoding='utf-8') as f:
                 report_data = json.load(f)
             
             fix_target_dir = report_data.get('target_dir', '.')
+            all_issues = report_data.get('issues', [])
             
             print(f"\n{'='*70}")
-            print(f"🔧 AUTO-FIX ENGINE")
+            print(f"🔒 SYKIL : Security Analyzer - AUTO-FIX ENGINE")
+            print(f"   Smashing Vulnerabilities, Securing Code")
             print(f"{'='*70}")
             print(f"[*] Laporan    : {args.fix}")
             print(f"[*] Target     : {fix_target_dir}")
@@ -103,6 +114,10 @@ Contoh penggunaan:
             
             # Print summary
             fixer.print_summary()
+            
+            # ⭐ Tampilkan panduan manual untuk issues yang tidak bisa di-fix otomatis
+            if all_issues:
+                Reporter.display_manual_fixes(all_issues)
             
             # Export stats jika diminta
             if args.export_stats:
@@ -135,7 +150,8 @@ Contoh penggunaan:
         logger.info(f"Memulai scan di: {target_dir}")
         
         print(f"\n{'='*70}")
-        print(f"🔒 DEEP PROJECT SECURITY & BUG ANALYZER")
+        print(f"🔒 SYKIL : Security Analyzer")
+        print(f"   Smashing Vulnerabilities, Securing Code")
         print(f"{'='*70}")
         print(f"[*] Target: {target_dir}")
         print(f"[*] Log disimpan di: logs/")
@@ -153,10 +169,13 @@ Contoh penggunaan:
         issues, total_files = scanner.scan_directory(target_dir, progress_callback)
         print("\n")
         
-        # Report
+        # Report hasil scan
         Reporter.console_report(issues, total_files)
         
-        # Export
+        # ⭐ Tampilkan panduan manual untuk issues yang tidak bisa di-fix otomatis
+        Reporter.display_manual_fixes(issues)
+        
+        # Export laporan
         if args.export:
             if args.export in ['json', 'both']:
                 Reporter.export_json(issues, total_files, target_dir)

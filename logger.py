@@ -8,6 +8,9 @@ from datetime import datetime
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# Logger name untuk SYKIL
+LOGGER_NAME = "sykil"
+
 # ANSI Colors untuk console
 class ColorFormatter(logging.Formatter):
     COLORS = {
@@ -25,9 +28,9 @@ class ColorFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logger(name="security_analyzer", log_level=logging.INFO):
+def setup_logger(name=LOGGER_NAME, log_level=logging.INFO):
     """
-    Setup logger terpusat dengan:
+    Setup logger terpusat untuk SYKIL dengan:
     - Console handler (berwarna)
     - File handler (semua log, rotasi 5MB x 5 file)
     - Error handler (hanya ERROR & CRITICAL)
@@ -60,13 +63,13 @@ def setup_logger(name="security_analyzer", log_level=logging.INFO):
     logger.addHandler(console_handler)
     
     # =========================================================================
-    # 2. File Handler - app.log (semua log, rotasi otomatis)
+    # 2. File Handler - sykil.log (semua log, rotasi otomatis)
     # =========================================================================
-    app_log_path = os.path.join(LOG_DIR, "app.log")
+    app_log_path = os.path.join(LOG_DIR, "sykil.log")
     app_handler = RotatingFileHandler(
         app_log_path,
         maxBytes=5 * 1024 * 1024,  # 5 MB
-        backupCount=5,              # Keep 5 backup files
+        backupCount=5,
         encoding='utf-8'
     )
     app_handler.setLevel(logging.DEBUG)
@@ -74,9 +77,9 @@ def setup_logger(name="security_analyzer", log_level=logging.INFO):
     logger.addHandler(app_handler)
     
     # =========================================================================
-    # 3. File Handler - error.log (hanya ERROR & CRITICAL)
+    # 3. File Handler - sykil_error.log (hanya ERROR & CRITICAL)
     # =========================================================================
-    error_log_path = os.path.join(LOG_DIR, "error.log")
+    error_log_path = os.path.join(LOG_DIR, "sykil_error.log")
     error_handler = RotatingFileHandler(
         error_log_path,
         maxBytes=5 * 1024 * 1024,
@@ -93,8 +96,8 @@ def setup_logger(name="security_analyzer", log_level=logging.INFO):
 def get_logger(name=None):
     """Ambil logger yang sudah di-setup"""
     if name:
-        return logging.getLogger(f"security_analyzer.{name}")
-    return logging.getLogger("security_analyzer")
+        return logging.getLogger(f"{LOGGER_NAME}.{name}")
+    return logging.getLogger(LOGGER_NAME)
 
 
 def log_exception(logger, message="Exception occurred"):
@@ -103,15 +106,14 @@ def log_exception(logger, message="Exception occurred"):
 
 
 # =============================================================================
-# Global Exception Handler (menangkap SEMUA error yang tidak tertangani)
+# Global Exception Handler
 # =============================================================================
 def global_exception_handler(exc_type, exc_value, exc_traceback):
     """Handler untuk uncaught exceptions"""
     logger = get_logger()
     
-    # Jangan log KeyboardInterrupt (Ctrl+C)
     if issubclass(exc_type, KeyboardInterrupt):
-        logger.warning("Aplikasi dihentikan oleh user (Ctrl+C)")
+        logger.warning("SYKIL dihentikan oleh user (Ctrl+C)")
         return
     
     logger.critical(
@@ -130,14 +132,21 @@ def setup_global_exception_handler():
 # =============================================================================
 def view_logs(log_type="app", lines=50):
     """Lihat isi log terakhir"""
-    log_file = os.path.join(LOG_DIR, f"{log_type}.log")
+    # Map tipe log ke nama file
+    log_file_map = {
+        'app': 'sykil.log',
+        'error': 'sykil_error.log'
+    }
+    
+    log_filename = log_file_map.get(log_type, 'sykil.log')
+    log_file = os.path.join(LOG_DIR, log_filename)
     
     if not os.path.exists(log_file):
         print(f"[!] File log tidak ditemukan: {log_file}")
         return
     
     print(f"\n{'='*70}")
-    print(f"📄 ISI LOG: {log_file} (terakhir {lines} baris)")
+    print(f"📄 SYKIL LOG: {log_file} (terakhir {lines} baris)")
     print(f"{'='*70}\n")
     
     try:

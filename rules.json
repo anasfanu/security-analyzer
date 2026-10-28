@@ -312,9 +312,9 @@
       "id": "CVE-2026-109619",
       "severity": "CRITICAL",
       "kategori": "RCE (PHP2Shell Variant)",
-      "pattern": "(?i)\\$_(GET|POST|REQUEST)\\s*\\[.*?\\]\\s*\\)\\s*;",
-      "info": "PHP2Shell variant: Superglobal langsung dieksekusi.",
-      "solusi": "Validasi dan sanitize semua input user sebelum digunakan.",
+      "pattern": "(?i)\\b(eval|system|exec|shell_exec|passthru|popen|assert)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)\\s*\\[",
+      "info": "PHP2Shell variant: Superglobal langsung dieksekusi di fungsi berbahaya.",
+      "solusi": "HAPUS segera. Jangan pernah gunakan input user di fungsi eksekusi.",
       "auto_fixable": false
     },
     {
